@@ -1,11 +1,11 @@
 from telebot import types
+from bot_ui.buttons.button_main_menu import button_main_menu
 
-markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+markup_seller = types.ReplyKeyboardMarkup(resize_keyboard=True)
 btn1 = types.KeyboardButton('Проблeмы с сайтом 💻')
 btn2 = types.KeyboardButton('Проблемы с доставкой 📦')
-markup.add(btn1,btn2)
+markup_seller.add(btn1, btn2)
 btn3 = types.KeyboardButton('Проблемы с покупателем 💬')
 btn4 = types.KeyboardButton('Проблемы с обменом 🔄')
-markup.add(btn3,btn4)
-back = types.KeyboardButton('Вернуться в главное меню 🏠')
-markup.add(back)
+markup_seller.add(btn3, btn4)
+markup_seller.add(button_main_menu)
