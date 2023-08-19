@@ -1,17 +1,12 @@
 import re
 from bot_start import bot
 import mysql_handler
-from bot_ui.buttons.button_main_menu import back_to_main_menu
+from bot_ui.markups.markup_for_registrants import markup_for_registrants
 from bot_ui.markups.markup_register import markup_register
-
-
-def check_is_back(message):
-    if message.text is None:
-        return False
-    if message.text == 'Вернуться в главное меню 🏠':
-        back_to_main_menu(message)
-        return True
-    return False
+import copy
+from bot_ui.markups.markup_main_menu import markup_main_menu
+from bot_ui.markups.markup_set_avatar import markup_set_avatar
+from check_is_back import check_is_back
 
 
 def init_register():
@@ -23,58 +18,81 @@ def init_register():
         cur.execute('SELECT * FROM sellers WHERE user_id = %s', message.from_user.id)
         myresult = cur.fetchone()
         if myresult is None:
-            bot.send_message(message.chat.id, 'Привет, сейчас Вас зарегистрируем! Введите Ваше настоящее имя.',
+            bot.send_message(message.chat.id, 'Привет, сейчас Вас зарегистрируем! Введите Ваш никнейм.',
                              reply_markup=markup_register)
-            bot.register_next_step_handler(message, user_name)
+            bot.register_next_step_handler(message, user_nick_name)
             return
         bot.send_message(message.chat.id, 'Вы уже зарегистрированы, попробуйте авторизоваться.')
 
-    def user_name(message):
+    def user_nick_name(message):
         if check_is_back(message):
             return
-        if message.text is None or not re.search('^[a-zA-Zа-яА-Я]+$', message.text):
-            bot.send_message(message.chat.id, 'Введите Ваше имя ещё раз.')
-            bot.register_next_step_handler(message, user_name)
+        if message.text is None or not re.search('^[a-zA-Z]+$', message.text):
+            bot.send_message(message.chat.id, 'Введите Ваш никнейм ещё раз.')
+            bot.register_next_step_handler(message, user_nick_name)
             return
-        name = message.text.strip()
-        bot.send_message(message.chat.id, 'Введите Вашу фамилию.')
-        bot.register_next_step_handler(message, user_surname, name)
+        nickname = message.text.strip()
+        bot.send_message(message.chat.id, 'Хотите ли Вы загрузить аватар? Позже это можно будет сделать, нажав на '
+                                          'кнопку "Профиль".', reply_markup=markup_set_avatar)
+        bot.register_next_step_handler(message, user_ask_avatar, nickname)
 
-    def user_surname(message, name):
+    def user_ask_avatar(message, nickname):
         if check_is_back(message):
             return
-        if message.text is None or not re.search('^[a-zA-Zа-яА-Я]+$', message.text):
-            bot.send_message(message.chat.id, 'Введите Вашу фамилию ещё раз.')
-            bot.register_next_step_handler(message, user_surname, name)
+        if message.text == 'Да':
+            bot.send_message(message.chat.id, 'Загрузите свой аватар.')
+            bot.register_next_step_handler(message, user_avatar, nickname)
             return
-        surname = message.text.strip()
+        if message.text == 'Нет':
+            bot.send_message(message.chat.id, 'Введите Вашу почту.',reply_markup=markup_register)
+            bot.register_next_step_handler(message, user_email, nickname, None)
+            return
+        bot.register_next_step_handler(message, user_ask_avatar, nickname)
+
+    def user_avatar(message, nickname):
+        if check_is_back(message):
+            return
+        if message.json.get('photo') is None:
+            bot.send_message(message.chat.id, 'Загрузите аватар ещё раз.')
+            bot.register_next_step_handler(message, user_avatar, nickname)
+            return
+        avatar = message.json['photo'][len(message.json['photo']) - 1]['file_id']
         bot.send_message(message.chat.id, 'Введите Вашу почту.')
-        bot.register_next_step_handler(message, user_email, name, surname)
+        bot.register_next_step_handler(message, user_email, nickname, avatar)
 
-    def user_email(message, name, surname):
+    def user_email(message, nickname, avatar):
         if check_is_back(message):
             return
         if message.text is None or not re.search('^[\w.]+@([\w-]+.)+[\w-]{2,4}$', message.text):
             bot.send_message(message.chat.id, 'Введите Вашу почту ещё раз.')
-            bot.register_next_step_handler(message, user_email, name, surname)
+            bot.register_next_step_handler(message, user_email, nickname, avatar)
             return
         email = message.text.strip()
         bot.send_message(message.chat.id, 'Введите Ваш пароль.')
-        bot.register_next_step_handler(message, user_pass, name, surname, email)
+        bot.register_next_step_handler(message, user_pass, nickname, email, avatar)
 
-    def user_pass(message, name, surname, email):
+    def user_pass(message, nickname, email, avatar):
         if check_is_back(message):
             return
         if message.text is None or not re.search('^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,}$', message.text):
             bot.send_message(message.chat.id, 'Введите пароль ещё раз. Минимальная длина пароля - 8 символов.'
                                               ' Пароль должен содержать числа, а также одну заглавную и '
-                                              'прописную букву. Пароль НЕ должен содержать спец. символы(@,$,!,%,*,#,?,&)')
-            bot.register_next_step_handler(message, user_pass, name, surname, email)
+                                              'прописную букву. Пароль НЕ должен содержать спец. символы(@,$,!,%,*,#,'
+                                              '?,&)')
+            bot.register_next_step_handler(message, user_pass, nickname, email, avatar)
             return
         password = message.text.strip()
-        cur = mysql_handler.connection.cursor()
 
-        cur.execute("INSERT INTO telebot.sellers (name, surname, email, pass, user_id) VALUES (%s, %s, %s, %s, %s)",
-                    (name, surname, email, password, message.from_user.id))
+        cur = mysql_handler.connection.cursor()
+        cur.execute("INSERT INTO telebot.sellers (nickname, email, pass, user_id) VALUES (%s, %s, %s, %s)",
+                    (nickname, email, password, message.from_user.id))
         mysql_handler.connection.commit()
-        bot.send_message(message.chat.id, 'Вы успешно зарегистрированы!')
+        sql_id = cur.execute("SELECT id FROM sellers WHERE user_id = %s", message.from_user.id)
+        temp_markup = copy.deepcopy(markup_main_menu)
+        if avatar is not None:
+            file = bot.get_file(avatar)
+            downloaded_file = bot.download_file(file.file_path)
+            with open('user_data/avatars/{}.jpg'.format(sql_id), 'wb') as new_file:
+                new_file.write(downloaded_file)
+
+        bot.send_message(message.chat.id, 'Вы успешно зарегистрированы!', reply_markup=markup_for_registrants)
