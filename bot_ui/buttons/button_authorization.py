@@ -21,7 +21,7 @@ def init_authorization():
     def user_email(message):
         if check_is_back(message):
             return
-        if message.text is None or not re.search('^[\w.]+@([\w-]+.)+[\w-]{2,4}$', message.text):
+        if message.text is None or not re.search('[^@]+@[^@]+\.[^@]+', message.text):
             bot.send_message(message.chat.id, 'Введите Вашу почту ещё раз.')
             bot.register_next_step_handler(message, user_email)
             return

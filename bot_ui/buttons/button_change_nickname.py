@@ -1,5 +1,4 @@
 import re
-
 import mysql_handler
 from bot_start import bot
 from bot_ui.markups.markup_for_registrants import markup_for_registrants
@@ -34,7 +33,7 @@ def init_change_nickname():
             return
         if message.text is None or not re.search('^[a-zA-Z]+$', message.text):
             bot.send_message(message.chat.id, 'Введите Ваш никнейм ещё раз.')
-            bot.register_next_step_handler(message, change_nickname)
+            bot.register_next_step_handler(message, change_nickname, password)
             return
         nickname = message.text.strip()
         cur = mysql_handler.connection.cursor()
@@ -47,4 +46,3 @@ def init_change_nickname():
         mysql_handler.connection.commit()
         bot.send_message(message.chat.id, 'Вы успешно сменили никнейм.',
                          reply_markup=markup_for_registrants)
-

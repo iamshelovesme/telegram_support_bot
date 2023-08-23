@@ -13,6 +13,7 @@ from bot_ui.markups.markup_main_menu import markup_main_menu
 from bot_ui.buttons.button_change_avatar import init_change_avatar
 from bot_ui.buttons.button_change_nickname import init_change_nickname
 from bot_ui.buttons.button_exit import init_exit_button
+from bot_ui.buttons.button_bind_number import init_bind_number
 
 init_register()
 init_contact_with_support()
@@ -23,6 +24,7 @@ init_button_profile()
 init_change_avatar()
 init_change_nickname()
 init_exit_button()
+init_bind_number()
 
 
 @bot.message_handler(commands=['start'])
